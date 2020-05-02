@@ -30,77 +30,34 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 public class NotifyList extends ListView {
-	private final Resources res;
-	private static final List<NotifyItem> list = new ArrayList<>();
-	private static OnListChangeListener listener;
 	private static final int HISTORY_LIMIT = 20;
+	private static final List<NotificationInfo> list = new ArrayList<>(HISTORY_LIMIT);
+	private static OnListChangeListener listener;
+	private final Resources res;
 	
 	NotifyList(Context context) {
 		super(context);
 		res = getResources();
 		setDivider(res.getDrawable(R.drawable.divider));
-		Adapter adapter = new Adapter();
-		setAdapter(adapter);
+		setAdapter(new Adapter());
 	}
 	
-	static void addNotification(App app, String message) {
+	static void refresh() {
+		if (listener != null) {
+			listener.onListChange();
+		}
+	}
+	
+	static void addNotification(NotificationInfo info) {
 		if (list.size() == HISTORY_LIMIT) {
 			list.remove(list.size() - 1);
 		}
-		list.add(0, new NotifyItem(app, message));
-		if (listener != null) {
-			listener.onListChange();
-		}
-	}
-	
-	static void setLastIgnore(String ignoreReasons, boolean isNew) {
-		if (list.isEmpty()) return;
-		list.get(0).setIgnoreReasons(ignoreReasons, isNew);
-		if (listener != null) {
-			listener.onListChange();
-		}
-	}
-	
-	private static class NotifyItem {
-		private final App app;
-		private final String message;
-		private String ignoreReasons;
-		private final String time;
-		private final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-		private boolean silenced;
-		
-		private NotifyItem(App app, String message) {
-			this.app = app;
-			this.message = message;
-			time = sdf.format(Calendar.getInstance().getTime());
-		}
-		
-		private App getApp() {
-			return app;
-		}
-		
-		private String getMessage() {
-			return message;
-		}
-		
-		private String getIgnoreReasons() {
-			return ignoreReasons;
-		}
-		
-		void setIgnoreReasons(String reasons, boolean isNew) {
-			silenced = !isNew;
-			ignoreReasons = reasons;
-		}
-		
-		private String getTime() {
-			return time;
-		}
+		list.add(0, info);
+		refresh();
 	}
 	
 	private interface OnListChangeListener {
@@ -139,27 +96,41 @@ public class NotifyList extends ListView {
 			return position;
 		}
 		
+		private class ViewHolder {
+			private TextView time;
+			private TextView title;
+			private TextView message;
+			private TextView ignoreReasons;
+		}
+		
 		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-			View view = convertView;
+		public View getView(int position, View view, ViewGroup parent) {
+			final ViewHolder holder;
 			if (view == null) {
 				view = mInflater.inflate(R.layout.notify_log_item, parent, false);
+				holder = new ViewHolder();
+				holder.time = view.findViewById(R.id.time);
+				holder.title = view.findViewById(R.id.title);
+				holder.message = view.findViewById(R.id.message);
+				holder.ignoreReasons = view.findViewById(R.id.ignore_reasons);
+				view.setTag(holder);
+			} else {
+				holder = (ViewHolder)view.getTag();
 			}
-			final NotifyItem item = list.get(position);
-			((TextView)view.findViewById(R.id.time)).setText(item.getTime());
-			((TextView)view.findViewById(R.id.title)).setText(item.getApp().getLabel());
-			TextView textView = view.findViewById(R.id.message);
-			if (item.getMessage().length() != 0) {
-				textView.setText(item.getMessage());
-				textView.setVisibility(TextView.VISIBLE);
-			} else textView.setVisibility(TextView.GONE);
-			textView = view.findViewById(R.id.ignore_reasons);
-			if (item.getIgnoreReasons() != null && item.getIgnoreReasons().length() != 0) {
-				textView.setText(item.getIgnoreReasons());
-				if (item.silenced) textView.setTextColor(Color.YELLOW);
-				else textView.setTextColor(Color.RED);
-				textView.setVisibility(TextView.VISIBLE);
-			} else textView.setVisibility(TextView.GONE);
+			final NotificationInfo item = list.get(position);
+			holder.time.setText(item.getTime());
+			holder.title.setText(item.getApp().getLabel());
+			String logMessage = item.getLogMessage();
+			if (logMessage.length() != 0) {
+				holder.message.setText(logMessage);
+				holder.message.setVisibility(TextView.VISIBLE);
+			} else holder.message.setVisibility(TextView.GONE);
+			if (!item.getIgnoreReasons().isEmpty()) {
+				holder.ignoreReasons.setText(item.getIgnoreReasonsAsText(view.getContext()));
+				if (item.isSilenced()) holder.ignoreReasons.setTextColor(Color.YELLOW);
+				else holder.ignoreReasons.setTextColor(Color.RED);
+				holder.ignoreReasons.setVisibility(TextView.VISIBLE);
+			} else holder.ignoreReasons.setVisibility(TextView.GONE);
 			view.setOnLongClickListener(new OnLongClickListener() {
 				@Override
 				public boolean onLongClick(View v) {

@@ -89,7 +89,7 @@ public class MainActivity extends PreferenceActivity {
 			pNotifyLog.setOnPreferenceClickListener(this);
 			pSupport = findPreference(getString(R.string.key_support));
 			pSupport.setOnPreferenceClickListener(this);
-			findPreference(getString(R.string.key_appList)).setIntent(new Intent(getActivity(), AppList.class));
+			findPreference(getString(R.string.key_appList)).setIntent(new Intent(getActivity(), AppListActivity.class));
 			Preference pTTS = findPreference(getString(R.string.key_ttsSettings));
 			Intent ttsIntent = getTtsIntent();
 			if (ttsIntent != null) {
@@ -148,7 +148,7 @@ public class MainActivity extends PreferenceActivity {
 				return true;
 			} else if (preference == pTest) {
 				final Context context = getActivity().getApplicationContext();
-				App vnApp = AppList.findOrAddApp(context.getPackageName(), context);
+				App vnApp = AppListActivity.findOrAddApp(context.getPackageName(), context);
 				assert vnApp != null; // Prevent Lint warning. Should never be null, I want a crash report if it is.
 				if (!vnApp.getEnabled()) {
 					Toast.makeText(context, getString(R.string.test_ignored), Toast.LENGTH_LONG).show();
@@ -174,7 +174,7 @@ public class MainActivity extends PreferenceActivity {
 									new NotificationCompat.Builder(context, id)
 											.setAutoCancel(true)
 											.setContentIntent(pi)
-											.setSmallIcon(R.drawable.icon)
+											.setSmallIcon(R.drawable.ic_notification)
 											.setTicker(context.getString(R.string.test_ticker))
 											.setSubText(context.getString(R.string.test_subtext))
 											.setContentTitle(context.getString(R.string.test_content_title))
@@ -301,16 +301,22 @@ public class MainActivity extends PreferenceActivity {
 									new DialogInterface.OnMultiChoiceClickListener() {
 										@Override
 										public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-											if (which == 0) { // Screen off
-												Common.getPrefs(getActivity()).edit().putBoolean(Common.KEY_SPEAK_SCREEN_OFF, isChecked).apply();
-											} else if (which == 1) { // Screen on
-												Common.getPrefs(getActivity()).edit().putBoolean(Common.KEY_SPEAK_SCREEN_ON, isChecked).apply();
-											} else if (which == 2) { // Headset off
-												Common.getPrefs(getActivity()).edit().putBoolean(Common.KEY_SPEAK_HEADSET_OFF, isChecked).apply();
-											} else if (which == 3) { // Headset on
-												Common.getPrefs(getActivity()).edit().putBoolean(Common.KEY_SPEAK_HEADSET_ON, isChecked).apply();
-											} else if (which == 4) { // Silent/vibrate
-												Common.getPrefs(getActivity()).edit().putBoolean(Common.KEY_SPEAK_SILENT_ON, isChecked).apply();
+											switch (which) {
+												case 0:  // Screen off
+													Common.getPrefs(getActivity()).edit().putBoolean(Common.KEY_SPEAK_SCREEN_OFF, isChecked).apply();
+													break;
+												case 1:  // Screen on
+													Common.getPrefs(getActivity()).edit().putBoolean(Common.KEY_SPEAK_SCREEN_ON, isChecked).apply();
+													break;
+												case 2:  // Headset off
+													Common.getPrefs(getActivity()).edit().putBoolean(Common.KEY_SPEAK_HEADSET_OFF, isChecked).apply();
+													break;
+												case 3:  // Headset on
+													Common.getPrefs(getActivity()).edit().putBoolean(Common.KEY_SPEAK_HEADSET_ON, isChecked).apply();
+													break;
+												case 4:  // Silent/vibrate
+													Common.getPrefs(getActivity()).edit().putBoolean(Common.KEY_SPEAK_SILENT_ON, isChecked).apply();
+													break;
 											}
 										}
 									}
